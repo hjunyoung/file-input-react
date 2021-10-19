@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled, { css } from 'styled-components';
 import { v4 as uuid } from 'uuid';
 
@@ -56,7 +56,28 @@ const Input = styled.input`
   height: 0; */
 `;
 
-const ImageContainer = styled.div`
+const DropBox = styled.section`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  width: 800px;
+  height: 150px;
+  background-color: #333333;
+  border-radius: 5px;
+
+  span {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  &.dragover {
+    box-shadow: inset 0px 0px 4px 4px rgba(0, 0, 0, 0.63);
+    background-color: #555555;
+  }
+`;
+
+const ImageContainer = styled.section`
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -115,8 +136,59 @@ const Description = styled.div`
 
 const Uploader = () => {
   const inputRef = useRef();
+  const dropRef = useRef();
   const [fileList, setFileList] = useState([]);
   const dataTransfer = new DataTransfer();
+
+  useEffect(() => {
+    const dropBox = dropRef.current;
+
+    const dragEnter = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+    };
+
+    const dragLeave = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      e.target.classList.remove('dragover');
+    };
+
+    const dragOver = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      e.target.classList.add('dragover');
+    };
+
+    const drop = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      e.target.classList.remove('dragover');
+
+      const files = e.dataTransfer.files;
+
+      const newFileList = [...fileList, ...Object.values(files)];
+      newFileList.forEach((file) => {
+        dataTransfer.items.add(file);
+      });
+
+      inputRef.current.files = dataTransfer.files;
+
+      setFileList(newFileList);
+    };
+
+    dropBox.addEventListener('dragenter', dragEnter);
+    dropBox.addEventListener('dragleave', dragLeave);
+    dropBox.addEventListener('dragover', dragOver);
+    dropBox.addEventListener('drop', drop);
+
+    return () => {
+      dropBox.removeEventListener('dragenter', dragEnter);
+      dropBox.removeEventListener('dragleave', dragLeave);
+      dropBox.removeEventListener('dragover', dragOver);
+      dropBox.removeEventListener('drop', drop);
+    };
+  }, [fileList, dataTransfer.files, dataTransfer.items]);
 
   const handleChange = (e) => {
     const {
@@ -174,6 +246,9 @@ const Uploader = () => {
         multiple={true}
         onChange={handleChange}
       />
+      <DropBox ref={dropRef}>
+        <span>Drag and drop files here.</span>
+      </DropBox>
 
       <ImageContainer>
         {fileList.length > 0 ? (
