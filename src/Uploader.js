@@ -97,6 +97,20 @@ const Description = styled.div`
   span:not(:last-child) {
     margin-right: 10px;
   }
+
+  button {
+    width: 60px;
+    height: 30px;
+
+    background: #1177cc;
+    border-radius: 2px;
+    cursor: pointer;
+
+    &:active {
+      transform: scale(0.98);
+      filter: grayscale(0.2);
+    }
+  }
 `;
 
 const Uploader = () => {
@@ -124,6 +138,26 @@ const Uploader = () => {
   const handleReset = () => {
     setFileList([]);
     inputRef.current.value = '';
+  };
+
+  const deleteImage = (e) => {
+    const {
+      parentNode: {
+        parentNode: { id: deleteId },
+      },
+    } = e.target;
+
+    const newFileList = fileList.filter(
+      (file) => file.lastModified !== Number(deleteId)
+    );
+
+    newFileList.forEach((file) => {
+      dataTransfer.items.add(file);
+    });
+
+    inputRef.current.files = dataTransfer.files;
+
+    setFileList(newFileList);
   };
 
   return (
@@ -156,6 +190,7 @@ const Uploader = () => {
                       File size: {`${(file.size / 2 ** 20).toFixed(1)}MB`}
                     </span>
                   </div>
+                  <button onClick={deleteImage}>Delete</button>
                 </Description>
                 <Preview>
                   <img
