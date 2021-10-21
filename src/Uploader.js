@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styled, { css } from 'styled-components';
 import { v4 as uuid } from 'uuid';
 
@@ -11,6 +11,12 @@ const Container = styled.div`
   width: 100%;
   min-height: 100vh;
   margin-top: 20px;
+
+  ${(props) =>
+    props.acceptable ||
+    css`
+      filter: blur(2px);
+    `}
 `;
 
 const ButtonContainer = styled.div`
@@ -67,6 +73,7 @@ const DropBox = styled.section`
   border-radius: 5px;
 
   span {
+    color: #ccc;
     opacity: 0.3;
     pointer-events: none;
   }
@@ -134,11 +141,67 @@ const Description = styled.div`
   }
 `;
 
+const Modal = styled.article`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+
+  width: 400px;
+  height: 400px;
+
+  font-size: 24px;
+  font-weight: 700;
+  color: #ddd;
+  background-color: #444444;
+  border-radius: 10px;
+  text-align: center;
+
+  button {
+    width: 60px;
+    height: 30px;
+    font-weight: 700;
+    color: #000;
+    background-color: #e06464;
+
+    &:hover {
+      color: #e06464;
+      background-color: #000;
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+`;
+
 const Uploader = () => {
   const inputRef = useRef();
   const dropRef = useRef();
   const [fileList, setFileList] = useState([]);
+  const [acceptable, setAcceptable] = useState(true);
   const dataTransfer = new DataTransfer();
+
+  const checkTypes = useCallback(
+    (files) => {
+      let newFileList = [...fileList, ...Object.values(files)];
+      for (let i = 0; i < files.length; i++) {
+        if (!files[i].type.startsWith('image')) {
+          newFileList = fileList;
+          setAcceptable(false);
+          break;
+        }
+      }
+      return newFileList;
+    },
+    [fileList]
+  );
 
   useEffect(() => {
     const dropBox = dropRef.current;
@@ -167,7 +230,8 @@ const Uploader = () => {
 
       const files = e.dataTransfer.files;
 
-      const newFileList = [...fileList, ...Object.values(files)];
+      const newFileList = checkTypes(files);
+
       newFileList.forEach((file) => {
         dataTransfer.items.add(file);
       });
@@ -188,14 +252,15 @@ const Uploader = () => {
       dropBox.removeEventListener('dragover', dragOver);
       dropBox.removeEventListener('drop', drop);
     };
-  }, [fileList, dataTransfer.files, dataTransfer.items]);
+  }, [fileList, dataTransfer.files, dataTransfer.items, checkTypes]);
 
   const handleChange = (e) => {
     const {
       target: { files: fileObject },
     } = e;
 
-    const newFileList = [...fileList, ...Object.values(fileObject)];
+    const newFileList = checkTypes(fileObject);
+
     // add each File object to dataTransferItemList object
     newFileList.forEach((file) => {
       dataTransfer.items.add(file);
@@ -233,55 +298,63 @@ const Uploader = () => {
   };
 
   return (
-    <Container>
-      <ButtonContainer>
-        <Label htmlFor="input">Upload Image</Label>
-        <Reset onClick={handleReset}>Reset</Reset>
-      </ButtonContainer>
-      <Input
-        id="input"
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        multiple={true}
-        onChange={handleChange}
-      />
-      <DropBox ref={dropRef}>
-        <span>Drag and drop files here.</span>
-      </DropBox>
+    <>
+      {acceptable || (
+        <Modal>
+          <span>You can only upload image files.</span>
+          <button onClick={() => setAcceptable(true)}>OK</button>
+        </Modal>
+      )}
+      <Container acceptable={acceptable}>
+        <ButtonContainer>
+          <Label htmlFor="input">Upload Image</Label>
+          <Reset onClick={handleReset}>Reset</Reset>
+        </ButtonContainer>
+        <Input
+          id="input"
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          multiple={true}
+          onChange={handleChange}
+        />
+        <DropBox ref={dropRef}>
+          <span>Drag and drop files here.</span>
+        </DropBox>
 
-      <ImageContainer>
-        {fileList.length > 0 ? (
-          fileList.map((file) => {
-            const imageSrc = URL.createObjectURL(file);
-            const id = uuid();
+        <ImageContainer>
+          {fileList.length > 0 ? (
+            fileList.map((file) => {
+              const imageSrc = URL.createObjectURL(file);
+              const id = uuid();
 
-            return (
-              <Image id={file.lastModified} key={id}>
-                <Description>
-                  <div>
-                    <span>File name: {file.name}</span>
-                    <span>
-                      File size: {`${(file.size / 2 ** 20).toFixed(1)}MB`}
-                    </span>
-                  </div>
-                  <button onClick={deleteImage}>Delete</button>
-                </Description>
-                <Preview>
-                  <img
-                    src={imageSrc}
-                    alt={file.name}
-                    onLoad={() => URL.revokeObjectURL(imageSrc)}
-                  />
-                </Preview>
-              </Image>
-            );
-          })
-        ) : (
-          <span>No Image</span>
-        )}
-      </ImageContainer>
-    </Container>
+              return (
+                <Image id={file.lastModified} key={id}>
+                  <Description>
+                    <div>
+                      <span>File name: {file.name}</span>
+                      <span>
+                        File size: {`${(file.size / 2 ** 20).toFixed(1)}MB`}
+                      </span>
+                    </div>
+                    <button onClick={deleteImage}>Delete</button>
+                  </Description>
+                  <Preview>
+                    <img
+                      src={imageSrc}
+                      alt={file.name}
+                      onLoad={() => URL.revokeObjectURL(imageSrc)}
+                    />
+                  </Preview>
+                </Image>
+              );
+            })
+          ) : (
+            <span>No Image</span>
+          )}
+        </ImageContainer>
+      </Container>
+    </>
   );
 };
 
