@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styled, { css } from 'styled-components';
 import { v4 as uuid } from 'uuid';
 
-const Container = styled.div`
+const Container = styled.article`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -19,7 +19,7 @@ const Container = styled.div`
     `}
 `;
 
-const ButtonContainer = styled.div`
+const ButtonContainer = styled.section`
   display: flex;
   justify-content: center;
   align-items: center;
@@ -91,7 +91,7 @@ const ImageContainer = styled.section`
   align-items: center;
 `;
 
-const Image = styled.div`
+const Image = styled.article`
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -101,7 +101,7 @@ const Image = styled.div`
   }
 `;
 
-const Preview = styled.div`
+const Preview = styled.section`
   width: 800px;
   height: 450px;
   background: #666666;
@@ -117,7 +117,7 @@ const Preview = styled.div`
   }
 `;
 
-const Description = styled.div`
+const Description = styled.section`
   display: flex;
   justify-content: space-between;
   align-items: center;
